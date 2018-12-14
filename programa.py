@@ -40,6 +40,7 @@ JOB_STATUS = ['pending', 'waiting', 'running', 'failed', 'successful']
 
 def call(url):
     url = url_base + url
+    logger.debug(url)
     return requests.get(url, verify=False, auth=auth)
 
 def call_post(url, data):
@@ -91,9 +92,16 @@ def createhost(nome,inventario):
     data = {"name": nome}
     return call_post("inventories/{}/hosts/".format(ret), data)
 # OK
-def joblaunch(nome):
+def joblaunch(nome,inventario):
     ret = gettemplate(nome)
-    return call("job_templates/{}/launch/".format(ret))
+    retinv = getinventory(inventario)
+    data = {"inventory": retinv}
+    ret = call_post("job_templates/{}/launch/".format(ret),data)
+    ret_json = json.loads(ret.text)
+    logger.debug("HTTP {}".format(ret.ok))
+    job = ret_json.get("job")
+    logger.debug("JOB {}".format(job))
+
 # OK
 def jobmonitor(job):
     ret = call('jobs/{}/activity_stream/'.format(job))
@@ -115,7 +123,7 @@ if string_join == 'create host':
 #sh "/usr/bin/tower-cli host create -n host -i inventario -u user -p senha -h host"
 
 if string_join == 'job launch':
-    joblaunch(Vnome)
+    joblaunch(Vnome,Vinventory)
 
 if string_join == 'job monitor':
     jobmonitor()
