@@ -50,6 +50,14 @@ def call_post(url, data):
     logger.debug(ret)
     return ret
 
+def call_job(url):
+    headers = {'Content-Type': 'application/json'}
+    url = url_base + url
+    logger.debug(url)
+    ret = requests.post(url, verify=False, headers=headers, auth=auth)
+    logger.debug(ret)
+    return ret
+
 def call_delete(url):
     headers = {'Content-Type': 'application/json'}
     url = url_base + url
@@ -63,44 +71,48 @@ def getinventory(nome):
     ret_json = json.loads(ret.text)
     return ret_json.get("results")[0].get("id")
 
+def gettemplate(nome):
+    ret = call("job_templates/?search=" + nome)
+    logger.debug(ret)
+    ret_json = json.loads(ret.text)
+    return ret_json.get("results")[0].get("id")
+
 def createinventory(nome):
-    print "create inventory"
     data = {"name": nome, "organization": 2}
     return call_post("inventories/",data)
 
 def deleteinventory(nome):
-    ret getinventory(nome)
+    ret = getinventory(nome)
     return call_delete("inventories/{}/".format(ret))
-    
+
 # OK
 def createhost(nome,inventario):
-    print "create host"
-    data = {"nome": host}
-    return call_post("inventories/{}/hosts/".format(inventario), data)
+    ret = getinventory(inventario)
+    data = {"name": nome}
+    return call_post("inventories/{}/hosts/".format(ret), data)
 # OK
 def joblaunch(nome):
-    print "job launch"
-    return call_post("job_templates/" + nome + "/launch/")
+    ret = gettemplate(nome)
+    return call("job_templates/{}/launch/".format(ret))
 # OK
 def jobmonitor(job):
-    print "job monitor"
     ret = call('jobs/{}/activity_stream/'.format(job))
     ret_json = json.loads(ret.text)
     return ret_json.get("results")[0].get("summary_fields").get("job")[0].get("status")
 
-
-#print sys.argv[1]
-#string_join = sys.argv[1] + " " + sys.argv[2]
-#print string_join
+string_join = sys.argv[1] + " " + sys.argv[2]
 
 if string_join == 'create inventory':
-   createinventory(Vnome,Vorg)
+   createinventory(Vnome)
+#sh "/usr/bin/tower-cli inventory create -n nome --organization 2 -u username -p senha -h host
 
 if string_join == 'delete inventory':
     deleteinventory(Vnome)
+#/usr/bin/tower-cli inventory delete -n nome -u user -p senha -h host
 
 if string_join == 'create host':
     createhost(Vnome,Vinventory)
+#sh "/usr/bin/tower-cli host create -n host -i inventario -u user -p senha -h host"
 
 if string_join == 'job launch':
     joblaunch(Vnome)
