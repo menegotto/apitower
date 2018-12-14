@@ -9,17 +9,9 @@ import os
 import commands
 import json
 
-
-app = os.path.realpath(__file__).split('/')[2]
-ctr = 'ANSIBLE' #os.path.realpath(__file__).split('/')[-1].rsplit('.', 1)[0]
-logger = logging.getLogger(app+'_'+ctr)
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-if not len(logger.handlers):
-    hdlr = logging.FileHandler('/applications/'+app+'/logs/'+ctr+'.log')
-    formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s %(funcName)s(): %(message)s')
-    hdlr.setFormatter(formatter)
-    logger.addHandler(hdlr)
 
 parser = optparse.OptionParser('usage%prog'+'-Vnome <Vnome>'+'-Vorg <Vorg> '+' -Vuser<Vuser>' +'-Vpass <Vpass> '+'-Vhost <Vhost>'+'-Vinventory <Vinventory>')
 
@@ -41,7 +33,7 @@ Vhost = options.Vhost
 Vinventory = options.Vinventory
 
 auth=(Vuser, Vpassword)
-url_base = "https://"+Vhost+"/api/v2/"
+url_base = "https://" + Vhost + "/api/v2/"
 
 JOB_STATUS = ['pending', 'waiting', 'running', 'failed', 'successful']
 
@@ -66,17 +58,20 @@ def call_delete(url):
     logger.debug(ret)
     return ret
 
-# OK
-def createinventory(nome,org):
+def getinventory(nome):
+    ret = call("inventories/?search=" + nome)
+    ret_json = json.loads(ret.text)
+    return ret_json.get("results")[0].get("id")
+
+def createinventory(nome):
     print "create inventory"
-    data = {"name": nome, "organization": org}
-    return call_post("inventories",data)
+    data = {"name": nome, "organization": 2}
+    return call_post("inventories/",data)
 
-# OK
 def deleteinventory(nome):
-    print "delete inventory"
-    return call_delete("inventories/{}/".format(nome))
-
+    ret getinventory(nome)
+    return call_delete("inventories/{}/".format(ret))
+    
 # OK
 def createhost(nome,inventario):
     print "create host"
@@ -85,13 +80,14 @@ def createhost(nome,inventario):
 # OK
 def joblaunch(nome):
     print "job launch"
-    return call_post("job_templates/"+nome+"/launch/")
+    return call_post("job_templates/" + nome + "/launch/")
 # OK
 def jobmonitor(job):
     print "job monitor"
     ret = call('jobs/{}/activity_stream/'.format(job))
     ret_json = json.loads(ret.text)
     return ret_json.get("results")[0].get("summary_fields").get("job")[0].get("status")
+
 
 #print sys.argv[1]
 #string_join = sys.argv[1] + " " + sys.argv[2]
